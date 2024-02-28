@@ -1,7 +1,11 @@
 import pika
 import json
 from constants import RABBITMQ_URL
-from main import Shop, Order, db
+from main import Shop, Order, db, app
+
+# app, db context
+app.app_context().push()
+db.create_all()
 
 params = pika.URLParameters(RABBITMQ_URL)
 
@@ -10,6 +14,7 @@ connection = pika.BlockingConnection(params)
 channel = connection.channel()
 
 channel.queue_declare(queue='owner')
+
 
 def callback(ch, method, properties, body):
     print('------------ Received in owner ------------')
@@ -21,23 +26,24 @@ def callback(ch, method, properties, body):
     # Shop
 
     if properties.content_type == 'shop_created':
-        
-        shop = Shop(id=data['id'], shop_name=data['shop_name'], shop_address=data['shop_address'])
-        
+
+        shop = Shop()
+        shop.shop_name = data['shop_name']
+        shop.shop_address = data['shop_address']
+        shop.id = data['id']
+
         db.session.add(shop)
         db.session.commit()
-    
-    if properties.content_type == 'shop_updated':
 
+    if properties.content_type == 'shop_updated':
         shop = Shop.query.get(data['id'])
-        
+
         shop.shop_name = data['shop_name']
         shop.shop_address = data['shop_address']
 
         db.session.commit()
 
     if properties.content_type == 'shop_deleted':
-
         shop = Shop.query.get(data)
 
         db.session.delete(shop)
@@ -46,29 +52,25 @@ def callback(ch, method, properties, body):
     # Order
 
     if properties.content_type == 'order_created':
-        
         order = Order(id=data['id'], shop=data['shop'], address=data['address'])
-        
+
         db.session.add(order)
         db.session.commit()
-    
-    if properties.content_type == 'order_updated':
 
+    if properties.content_type == 'order_updated':
         order = Order.query.get(data['id'])
-        
+
         order.shop = data['shop']
         order.address = data['address']
 
         db.session.commit()
 
     if properties.content_type == 'order_deleted':
-
         order = Order.query.get(data)
 
         db.session.delete(order)
         db.session.commit()
 
-    
 
 channel.basic_consume(queue='owner', on_message_callback=callback, auto_ack=True)
 

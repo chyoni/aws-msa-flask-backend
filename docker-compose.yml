@@ -16,6 +16,8 @@ services:
     container_name: flask-owner-service-rabbitmq
     build: .
     command: python consumer.py
+    environment:
+      - TZ=Asia/Seoul
     depends_on:
       - db
   
