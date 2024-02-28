@@ -21,10 +21,11 @@ def callback(ch, method, properties, body):
 
     data = json.loads(body)
 
-    print(data)
+    print("properties: ", properties)
+
+    print("payload: ", data)
 
     # Shop
-
     if properties.content_type == 'shop_created':
 
         shop = Shop()
@@ -50,7 +51,6 @@ def callback(ch, method, properties, body):
         db.session.commit()
 
     # Order
-
     if properties.content_type == 'order_created':
         order = Order(id=data['id'], shop=data['shop'], address=data['address'])
 
